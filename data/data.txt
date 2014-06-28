@@ -1,0 +1,4 @@
+last="Ambrose" first="Alice" bdate="1885-04-22"
+last="Baldwin" first="Bernard" bdate="1887-09-13"
+last="Corbin" first="Charles" bdate="1879-11-03"
+last="Dalton" first="Dennis" bdate="1881-01-07"

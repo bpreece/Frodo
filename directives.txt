@@ -1,0 +1,643 @@
+Directive: reset
+    
+    Resets the current line index and the range index to include all lines
+    in the object.  Specifically, the current line is set to the first line
+    of the text being processed, and the range to the entire list of lines.
+    
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.  In the current implementation,
+    this method always succeeds
+
+Directive: range-reset
+    
+    Sets the range to include all lines from the current line to the end
+    of the text; that is, the range index is set to the number of lines in
+    the object text.
+    
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.  In the current implementation,
+    this method always succeeds.
+
+Directive: range integer
+    
+    Sets the range to include the given number of lines, starting with the
+    current line.  If there are not that many lines to the end of the text,
+    then this directive fails, and the range is not changed.  The
+    argument must be a positive integer.
+    
+    Parameter: integer - the number of lines past the current line to set the
+    range index.
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range regex
+    
+    Sets the range to include all lines from the current line, inclusive, to
+    the next line strictly after the current line which matches the given
+    regular  expression, exclusive.  The regular expression must match the
+    entire line.
+    
+    If no line after the current line matches the regular expression, then
+    the directive fails, and the range is not changed.
+    
+    Parameter: regex - the regular expression to match.
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range-starts string
+    
+    Sets the range to include all lines from the current line, inclusive, to
+    the next line after the current line which starts with the given
+    substring, exclusive.
+    
+    If no line after the current line starts with the given substring, then
+    the directive fails, and the range is not changed.
+    
+    Parameter: string - the substring to match
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range-ends string
+    
+    Sets the range to include all lines from the current line, inclusive, to
+    the next line after the current line which ends with the given
+    substring, exclusive.
+    
+    If no line after the current line ends with the given substring, then
+    the directive fails, and the range is not changed.
+    
+    Parameter: string - the substring to match
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range-contains string
+    
+    Sets the range to include all lines from the current line, inclusive, to
+    the next line after the current line which contains the given
+    substring, exclusive.
+    
+    If no line after the current line contains the given substring, then
+    the directive fails, and the range is not changed.
+    
+    Parameter: string - the substring to match
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range-empty
+    
+    Sets the range to include all lines from the current line, inclusive, to
+    the next line after the current line which is empty, exclusive.
+    
+    If no line after the current line is empty, then the directive fails,
+    and the range is not changed.
+    
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range string
+    
+    Sets the range to include all lines from the current line, inclusive, to
+    the next line after the current line which is equal (not identical) to
+    the given string, exclusive.  "Equal" in this case means that Java
+    String.equals() returns true.
+    
+    If no line after the current line equals the given string, then the
+    directive fails, and the range is not changed.
+    
+    Parameter: string - the other string to match
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: range-adjust integer
+    
+    Adjusts the end of the range by the given number of lines.  The 
+    parameter n may be negative.
+    
+    If the requested line is equal to or comes before the current line, or if
+    the requested line is past the maximum range, then this directive fails,
+    and the range is not changed.
+    
+    Parameter: integer - the number of lines to adjust the end of the range.
+    Result:  Succeeds if the range is successfully changed, and
+    fails otherwise.
+
+Directive: prev
+    
+    Set the current line to be the line preceding it.  If there is no such
+    line, that is if the current line is already the first line in the
+    object text, then the directive fails, and the current
+    line is not changed.
+    
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev integer
+    
+    Set the current line to be the line the given number of lines preceding
+    it.  The given parameter may be negative, but if the requested line
+    is before the first line in the object text, or is greater than or equal
+    to the end of the range, then this directive fails and
+    the current line is not changed.
+    
+    This method does not affect the end of the range.
+    
+    Parameter: integer - the number of lines to adjust the current line
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev regex
+    
+    Set the current line to be the closest line preceding it that matches
+    the given regular expression.  The entire line must match the regular
+    expression.
+    
+    If there is no line preceding the current line which matches the
+    regular expression, then this directive fails and
+    the current line is not changed.
+    
+    This method does not affect the end of the range, and it does not
+    change the current capture groups.
+    
+    Parameter: regex - the regular expression to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev-starts string
+    
+    Set the current line to be the closest line preceding it that starts
+    with the given substring.
+    
+    If there is no line preceding the current line which starts with the
+    substring, then this directive fails and
+    the current line is not changed.
+    
+    This method does not affect the end of the range.
+    
+    Parameter: string - the substring to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev-ends string
+    
+    Set the current line to be the closest line preceding it that ends
+    with the given substring.
+    
+    If there is no line preceding the current line which ends with the
+    substring, then this directive fails and
+    the current line is not changed.
+    
+    This method does not affect the end of the range.
+    
+    Parameter: string - the substring to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev-contains string
+    
+    Set the current line to be the closest line preceding it that contains
+    the given substring.
+    
+    If there is no line preceding the current line which contains the
+    substring, then this directive fails and
+    the current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Parameter: string - the substring to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev-empty
+    
+    Set the current line to be the closest line preceding it that is empty.
+    
+    If there is no line preceding the current line which is empty, then
+    this directive fails and the current line is not
+    changed.
+    
+    This directive does not affect the end of the range.
+    
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: prev string
+    
+    Set the current line to be the closest line preceding it that equals
+    the given string.  "Equals" means that the method equals()
+    returns true.
+    
+    If there is no line preceding the current line which equals the
+    string, then this directive fails and
+    the current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Parameter: string - the other string to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next
+    
+    Set the current line to be the line following it.  If the line following
+    it is the end of the current range, that is if
+    
+    lineIndex + 1 == rangeIndex
+    
+    then the directive fails, and the current line is
+    not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next integer
+    
+    Set the current line to be the line the given number of lines following
+    it.  The given parameter may be negative, but if the requested line
+    is before the first line in the object text, or is greater than or equal
+    to the end of the range, then this directive fails and
+    the current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Parameter: integer - the number of lines to adjust the current line
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next regex
+    
+    Set the current line to be the closest line following, but before the
+    end of the current range, it that matches the given regular expression.
+    The entire line must match the regular expression.
+    
+    If there is no line following it, but before the end of the range,
+    which matches the regular expression, then this directive fails
+    and the current line is not changed.
+    
+    This directive does not affect the end of the range, and it does not
+    change the current capture groups.
+    
+    Parameter: regex - the regular expression to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next-starts string
+    
+    Set the current line to be the closest line following, but before the
+    end of the current range, it that starts with the given substring.
+    The entire line must match the regular expression.
+    
+    If there is no line following it, but before the end of the range,
+    which starts with the given substring, then this directive fails,
+    and the current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Parameter: string - the substring to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next-ends string
+    
+    Set the current line to be the closest line following, but before the
+    end of the current range, it that ends with the given substring.
+    The entire line must match the regular expression.
+    
+    If there is no line following it, but before the end of the range,
+    which ends with the given substring, then this directive fails
+    and the current line is not changed.
+    
+    This method does not affect the end of the range.
+    
+    Parameter: string - the substring to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails  otherwise.
+
+Directive: next-contains string
+    
+    Set the current line to be the closest line following, but before the
+    end of the current range, it that contains the given substring.
+    The entire line must match the regular expression.
+    
+    If there is no line following it, but before the end of the range,
+    which contains the given substring, then this directive fails
+    and the current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Parameter: string - the substring to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next-empty
+    
+    Set the current line to be the closest line following it, but before the
+    end of the current range, that is empty.
+    
+    If there is no line following it, but before the end of the range,
+    which is empty, then this directive fails and the
+    current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: next string
+    
+    Set the current line to be the closest line following, but before the
+    end of the current range, it that equals  the given substring.
+    The entire line must match the regular expression.  "Equals" means that
+    the Java method String.equals() returns true.
+    
+    If there is no line following it, but before the end of the range,
+    which equals the given substring, then this directive fails
+    and the current line is not changed.
+    
+    This directive does not affect the end of the range.
+    
+    Parameter: string - the other string to match.
+    Result:  Succeeds if the current line is successfully changed,
+    and fails otherwise.
+
+Directive: insert string
+    
+    Inserts the given line into the object text before the current line.
+    
+    The current range is not affected.
+    
+    Parameter: string - line to insert
+    Result:  Succeeds if the line is correctly inserted, and fails
+    otherwise.  The current implementation always succeeds.
+
+Directive: insert format
+    
+    Formats a new string by calling MessageFormat.format()
+    the given format string and the capture groups from any previous match,
+    and inserts the new line into the object text before the current line.
+    If the message cannot be formatted correctly, then this directive fails,
+    and the string is not inserted.
+    
+    The current range is not affected.
+    
+    Parameter: format - the MessageFormat string
+    Result:  Succeeds if the line is correctly inserted, and fails
+    otherwise.  The current implementation will fail only if the
+    MessageFormat fails.
+
+Directive: replace regex format
+    
+    Rewrites the current line according to the given regular expression and
+    format string, and inserts the resulting line into the object text
+    before the current line.
+    
+    First, the given regular expression is applied to the current line.
+    If the regex does not match, then this directive fails
+    and the object text is not changed.  If the regex matches, then its
+    capture groups are collected as arguments the format string.  The new
+    line is formatted by calling MessageFormat.format() with
+    the given format string and the capture groups as arguments.
+    
+    The current range is not affected.
+    
+    Parameter: regex - the regular expression to match to the current line
+    Parameter: format - the MessageFormat string to format the new line
+    Result:  Succeeds if the current line is correctly replaced, and fails
+    otherwise.  The current implementation will fail if the pattern
+    does not match the current line, or if the MessageFormat fails.
+
+Directive: insert-after string
+    
+    Inserts the given line into the object text after the current line.
+    
+    The new line is added to the current range.
+    
+    Parameter: string - line to insert
+    Result:  Succeeds if the line is correctly inserted, and fails
+    otherwise.  The current implementation always returns
+    true.
+
+Directive: insert-after format
+    
+    Formats a new string by calling MessageFormat.format() with
+    the given format string and the capture groups from any previous match,
+    and inserts the new line into the object text after the current line.
+    If the message cannot be formatted correctly, then this directive fails
+    and the string is not inserted.
+    
+    The current range is not affected, except that the new line becomes
+    part of the range.
+    
+    Parameter: format - the MessageFormat string
+    Result:  Succeeds if the line is correctly inserted, and fails
+    otherwise.  The current implementation will fail only if the
+    MessageFormat fails.
+
+Directive: insert-after regex format
+    
+    Rewrites the current line according to the given regular expression and
+    format string, and inserts the resulting line into the object text
+    after the current line.
+    
+    First, the given regular expression is applied to the current line.
+    If the regex does not match, then this directive fails,
+    and the object text is not changed.  If the regex matches, then its
+    capture groups are collected as arguments the format string.  The new
+    line is formatted by calling MessageFormat.format() with
+    the given format string and the capture groups as arguments.
+    
+    The current range is not affected, except that the new line becomes
+    part of the range.
+    
+    Parameter: regex - the regular expression to match to the current line
+    Parameter: format - the MessageFormat string to format the new line
+    Result:  Succeeds if the line is correctly inserted, and fails
+    otherwise.  The current implementation will fail if the pattern
+    does not match the current line, or if the MessageFormat fails.
+
+Directive: append string
+    
+    Inserts the given line after the last line in the current range.  If the
+    range is currently empty, then the new line becomes the new current line.
+    The end of the range is adjusted to include the appended line.
+    
+    Parameter: string - the line to insert
+    Result:  Succeeds if the line is correctly appended, and fails
+    otherwise.  The current implementation always returns
+    true.
+
+Directive: append format
+    
+    Formats a new string by calling MessageFormat.format() with
+    the given format string and the capture groups from any previous match,
+    and inserts the new line after the last line in the current range.  If
+    the range is currently empty, then the new line becomes the new current
+    line.  If the message cannot be formatted correctly, then this directive
+    fails, and the string is not inserted.
+    
+    Parameter: format - the MessageFormat string
+    Result:  Succeeds if the line is correctly appended, and fails
+    otherwise.  The current implementation will fail only if the
+    MessageFormat fails.
+
+Directive: append regex format
+    
+    Rewrites the current line according to the given regular expression and
+    format string, and inserts the resulting line into the object text
+    after the last line in the current range.
+    
+    First, the given regular expression is applied to the current line.
+    If the regex does not match, then this directive fails,
+    and the object text is not changed.  If the regex matches, then its
+    capture groups are collected as arguments the format string.  The new
+    line is formatted by calling MessageFormat.format() with
+    the given format string and the capture groups as arguments.
+    
+    Parameter: regex - the regular expression to match to the current line
+    Parameter: format - the MessageFormat string to format the new line
+    Result:  Succeeds if the line is correctly appended, and fails
+    otherwise.  The current implementation will fail if the pattern
+    does not match the current line, or if the MessageFormat fails.
+
+Directive: remove
+    
+    Removes the current line from the object text.  The line following the
+    current line becomes the new current line.
+    
+    This directive will fail if the current range is empty;  that is if the
+    current line index equals the range index.
+    
+    Result:  Succeeds if the line is correctly removed, and fails
+    otherwise.
+
+Directive: replace string
+    
+    Replaces the current line with the given line.  This directive fails if the
+    current range is empty.
+    
+    Parameter: string - the new line to replace the current line.
+    Result:  Succeeds if the current line is correctly replaced, and fails
+    otherwise.
+
+Directive: replace format
+    
+    Formats a new string by calling MessageFormat.format() with
+    the given format string and the capture groups from any previous match,
+    and replaces the current line with the new line.  If the message cannot
+    be formatted correctly, then this directive fails
+    and the string is not inserted.
+    
+    Parameter: format - the MessageFormat string
+    Result:  Succeeds if the current line is correctly replaced, and fails
+    otherwise.
+
+Directive: contains string
+    
+    Determines whether the current line contains the given substring.  If the
+    current range is empty, then this directive fails.
+    
+    Parameter: string - the substring to find
+    Result:  Succeeds if the current line contains the given substring, and
+    fails otherwise.
+
+Directive: starts string
+    
+    Determines whether the current line starts with the given substring.  If the
+    current range is empty, then this directive fails.
+    
+    Parameter: starts - the substring to find
+    Result:  Succeeds if the current line starts with the given substring,
+    and fails otherwise
+
+Directive: ends string
+    
+    Determines whether the current line ends with the given substring.  If the
+    current range is empty, then this directive fails
+    
+    Parameter: substring - the substring to find
+    Result:  Succeeds if the current line ends with the given substring,
+    and fails otherwise.
+
+Directive: empty
+    
+    Determines whether the current line is empty.  If the
+    current range is empty, then this directive fails.
+    
+    Result:  Succeeds if the current line is empty, and fails otherwise.
+
+Directive: equals
+    
+    Returns whether the current line equals the given other line.  If the
+    current range is empty, then this directive fails
+    
+    Parameter: line - the substring to find
+    Result:  Succeeds if the current line equals the given other line, and
+    fails otherwise.
+
+Directive: replace regex string
+    
+    Replaces all substrings which match the regular expression with the
+    replacement string in the current line. This directive fails if the
+    current range is empty.
+    
+    Parameter: regex - 
+    Parameter: string - 
+    Result:  Succeeds if the current line is correctly rewritten, and fails
+    otherwise.
+
+Directive: replace-first regex string
+    
+    Replaces the first substring which match the regular expression with the
+    replacement string in the current line. This directive fails if the
+    current range is empty.
+    
+    Parameter: regex - 
+    Parameter: string - 
+    Result:  Succeeds if the current line is correctly rewritten, and fails
+    otherwise.
+
+Directive: catenate integer
+    
+    Concatenate the current line together with the next given number of
+    lines.  The concatenated line replaces the current line, and all
+    the following lines are removed from the list.
+    
+    Parameter: integer - 
+    Result:  Succeeds if the lines are correctly concatenated together,
+    and fails otherwise.
+
+Directive: catenate
+    
+    Concatenate the current line together with the following line.  The
+    concatenated line replaces the current line, and the following line
+    is removed from the list.
+    
+    Result:  Succeeds if the lines are correctly concatenated together,
+    and fails otherwise.
+
+Directive: match regex
+    
+    Attempts to match the current line to the given regular expression.  If
+    the line matches, the directive succeeds, and the
+    captured groups are saved to be used later in formats.
+    
+    Parameter: regex - 
+    Result:  Succeeds if the current line matched the given pattern,
+    and fails otherwise.
+
+Directive: replace regex format
+    
+    Matches the current line to the given regular expression, formats a new
+    line using the matching groups from the regex, and replaces the current
+    line with the new line.  If the current line does not match the
+    pattern, then this directive fails, and the line is not changed.
+    
+    If the regular expression matches, the capture groups are saved and
+    can be accessed later by formats.
+    
+    Parameter: regex - 
+    Parameter: format - 
+    Result:  Succeeds if the current line matched the given regex,
+    and fails otherwise.
+

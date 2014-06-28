@@ -1,0 +1,13 @@
+define InputFormat     /last="(.*)" first="(.*)" bdate="(.*)"/
+
+insert "<records>" -- insert the opening <records> tag
+while (
+    match InputFormat  -- make sure this is a valid line, and extract fields
+    insert "  <record>" -- insert opening <record> tag
+    insert |    <last>{1}</last>|   -- insert last name element
+    insert |    <first>{2}</first>| -- insert first name element
+    insert |    <bdate>{3}</bdate>| -- insert bdate element
+    replace "  </record>"           -- close <record> tag
+    next -- process the next line in the file
+)
+append "</records>" -- close the <records> tag

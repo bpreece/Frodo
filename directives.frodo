@@ -1,0 +1,62 @@
+--
+-- File:   directive.frodo
+-- Author: Ben Preece
+--
+-- Generate programmer documentation for the directives from the Javadocs in
+-- LOTR.java.
+--
+
+-- regex and format for rewriting the Directive: lines
+define DIRECTIVE_RX     /^     \\* (Directive:.*)/
+define DIRECTIVE_FMT    |{1}|
+
+-- end of javadocs for a method
+define END_DOCS_RX      /^     \\*\//
+
+-- regex and format for rewriting lines in javadocs
+define COMMENT_RX       /^     \\*(.*)/
+define COMMENT_FMT      |   {1}|
+
+-- regex and format for rewriting @return lines
+define RETURN_RX        /@return/
+define RESULT_STR       "Results:"
+
+-- regex and format for rewriting @param lines - note that some methods
+-- provide only a parameter name, some provide a description too
+define PARAM_RX_1_ARG   /^    @param (\\S+)/
+define PARAM_RX_2_ARG   /^    @param (\\S+) (.*)/
+define PARAM_FMT_1_ARG  |    Parameter: {1} - {2}|
+define PARAM_FMT_2_ARG  |    Parameter: {1}|
+
+-- regex for HTML open ande close "code" tags, which will be removed
+define CODE_TAG_RX      /<\/?code>/
+
+while (
+    -- separate directives by a couple blank lines
+    insert ""
+    insert ""
+
+    -- remove everything up to the next directive
+    range DIRECTIVE_RX
+    remove-range
+
+    -- find the end of the javadocs for this directive and convert to plain text
+    range END_DOCS_RX
+    replace DIRECTIVE_RX DIRECTIVE_FMT
+    while (
+        next
+
+        -- edit the @return and @param lines and  remove the leading star
+        replace COMMENT_RX COMMENT_FMT
+        ( replace-first RETURN_RX RESULT_STR ?)
+        ( replace PARAM_RX_2_ARG PARAM_FMT_1_ARG ?
+          replace PARAM_RX_1_ARG PARAM_FMT_2_ARG ?)
+
+        -- remove the <code> and </code> tags
+        replace-all CODE_TAG_RX ""
+    )
+)
+
+-- remove the rest of the file
+range-reset
+remove-range

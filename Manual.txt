@@ -1,0 +1,283 @@
+Frodo, the LOTR
+========================================
+
+Frodo is a Line-Oriented Text Rewriter, a tool for scripting bulk rewrites of
+line-oriented text data. It can be used for reformatting data, or for other
+editing tasks more challenging than global-search-and-replace.
+
+For example, here is a script to convert a three-column CSV file into XML.
+
+    insert "<xml>"
+    while (
+        match /([^,]*),([^,]*),([^,]*)/
+        insert "  <record>"
+        insert |    <column1>{1}</column1>|
+        insert |    <column2>{2}</column2>|
+        insert |    <column3>{3}</column3>|
+        insert "  </record>"
+        remove
+    )
+    append "</xml>"
+
+
+Literals and Defines
+----------------------------------------
+
+Frodo recognizes four types of literals:  integers, strings, regular
+expressions, and formats.
+
+    integer:    12
+    string:     "this is a string"
+    regex:      /this is a regex/
+    format:     |this is a format|
+
+Although regexes and formats look similar to strings, the three are not
+generally interchangeable.
+
+Regular expressions describe a pattern that must be matched in the text.  Since
+Frodo is backed up by Java, these are identical to Java regexes.  Regexes can
+be used to locate information in the data.  For example,
+
+    next /0+[0-9a-fA-F]{4}/
+
+will locate the next line that contains a unicode character, such as 0+042F,
+the unicode for the Cyrillic "ya".
+
+Regular expressions can identify "capture groups" by enclosing them in
+parentheses.  When the regex matches, the capture groups are extracted and
+available to be used later in formats.  For example,
+
+    /(\\s*)<div class="(.*)">/
+
+identifies two capture groups:  group 1 is the initial whitespace that starts
+the line, and group 2 is the contents of class attribute in the div tag.
+
+Formats are used to create text.  These are identical to the Java MessageFormat.
+Within a format, arguments are indicated by enclosing them in braces, for
+example
+
+    |name="{1}"|
+
+Frodo replaces the format arguments with the corresponding capture groups from
+the previous regex match.  For example,
+
+    replace /(.*),(.*)/ |Name: Last="{1}" First="{2}"|
+
+The regex extracts two values separated by a comma, and the format constructs
+a string from them.  If the input to that directive is
+
+    Carmichael,Linda
+
+then the output will be
+
+    Name: Last="Carmichael" First="Linda"
+
+Names can be assigned to any literal using the "define" keyword.  For example,
+
+    define OldFormatRx      /(.*),(.*)/
+    define NewFormatFmt     |Name: Last="{1}" First="{2}"|
+
+and then these names can be used in directives.  For example,
+
+    replace OldFormat NewFormat.
+
+All defines must appear in the script before any directives or commands.
+
+
+Directives and Range
+----------------------------------------
+
+A directive consists of a keyword, possibly followed by one or two parameters.
+For example,
+
+    next
+
+    range /\\s*<\/div>/
+
+    replace-all /me/ "you"
+
+Note that terminators are not needed to delimit directives, since every
+directive starts with a keyword, and terminates when the next directive starts.
+This means, for example, that
+
+    next replace /me/ "you"
+
+is the same as
+
+    next
+    replace /me/ "you"
+
+which is the same as
+
+    next
+    replace /me/
+            "you"
+
+Frodo has the concepts of a current line and a range.  Generally, directives
+apply to the current line.
+
+The range is some point past the current line which marks the end of where
+processing will apply.  Both the current line and the range can be adjusted by
+directives.  For example,
+
+    range-contains "</div>"
+    while (
+        next-contains "<li>"
+        remove
+    )
+
+will set the range to the next line that includes the substring "</div>" and
+then remove every line up to but not including that line which includes the
+substring "<li>".  Note that range commands identify the first line that is
+*outside* the processing range.
+
+Initially, the current line is the first line in the input text, and the range
+is set to include all lines in the input text.
+
+
+Flow Control
+----------------------------------------
+
+# Sequences
+
+Every directive in Frodo either succeeds or fails, and basic flow control is
+based on this feature.
+
+A sequence of Frodo commands is executed in series as long as all commands in
+the sequence succeed.  However, as soon as any command fails, the sequence
+itself fails, and no further commands are attempted.  For example, suppose that
+in the sequence
+
+    next-starts "<div "
+    range "</div>"
+    replace-first /div/ "p"
+
+the "next-starts" directive succeeds, but the "range" directive fails.  Then
+the "replace-first" directive is never attempted, and the sequence itself
+fails.
+
+Note that an empty sequence always succeeds.  This is useful when dealing with
+disjunctions.
+
+
+# Disjunctions
+
+Alternatives can be specified for case of failure by using the "else" or "?"
+keyword.  For example, in the disjunction
+
+    range "</div>"  else  range-reset
+
+the "range" directive is attempted first, and the "range-reset" directive is
+attempted only if "range" fails.  Any number of commands can be joined in a
+disjunction.  For example,
+
+    range "</div>" ? range "</body>" ? range "</html>" ? range-reset
+
+The next choice will be attempted only if all the previous have failed.  The
+entire disjunction succeeds if any of the directives succeeds, and fails only
+if all directives fail.
+
+Sequencing has a higher precedence than disjunction, so that for example,
+
+    next
+    replace-all /me/ "you"
+    ?
+    insert "this sucks"
+
+groups as
+
+    (
+        next
+        replace-all /me/ "you"
+    )
+    ?
+    insert "this sucks"
+
+That is, the "insert" directive will be attempted if either the "next" or the
+"replace-all" directive fails.
+
+Since empty sequences always succeed, it's possible to ignore a failed command
+by providing an empty alternative.  For example,
+
+    ( replace /Name="(.*)"/ |User {1}| ? )
+
+In this case, if the "replace" directive fails, then the alternative will be
+attempted.  But since the alternative is an empty sequence, the disjunction
+succeeds, whether the "replace" succeeds or not.
+
+
+# While loops
+
+The "while" loop is the only option for repeated actions.  The command
+that follows the "while" keyword will be repeated as long as it succeeds.  Once
+the command fails the loop will terminate, but the loop itself will be
+considered to have succeeded.  For example,
+
+    while
+        next-contains "</div>"
+
+will find the last instance of a line with the substring "</div>".  Obviously
+the command can be a command block.  For example,
+
+    while (
+        next
+        replace /They like me!/ |They like you!|
+    )
+
+will terminate when either the "next" directive or the "replace" directive
+fails.
+
+
+# Command blocks
+
+As seen in the preceding paragraphs, commands can be grouped into a command
+block by enclosing them in parentheses.  'Nuf said.
+
+
+Error Handling
+----------------------------------------
+
+There are three logging directives available to print error messages to the
+console:  "log", "fail", and "abort".  The "log" directive always succeeds,
+the "fail" directive always fails, and the "abort" immediately terminates the
+script processing.  The "log" directive requires you to provide a message as a
+parameter, but this is optional on the "fail" and "abort" directives.
+
+Errors can be caught and handled by providing an alternative to a block
+of commands.  For example,
+
+    (
+        range-contains "</li>"
+    ?
+        -- should have found the closing tag, but didn't
+        insert ">>>>>>> The following list item does not have a closing tag"
+        abort "Check the output for unclosed list items"
+    )
+
+
+Debugging Suggestions
+----------------------------------------
+
+Parsing error messages currently suck, but some likely errors are misformatted
+literals, and using the wrong type of literal.  For example
+
+    next /C comments use /* to start them/
+    -- embedded slash!!!
+
+    replace /something/ "this should be a format, not a string"
+
+When you're initially creating your script, consider using "log" directives
+instead of comments.  Later, you can do a global search and replace to
+convert them back to comments.
+
+    log "-- modify the primary menu"
+    next-contains "<ul class='primary-menu'>"
+
+Sanity checks are very useful.
+
+    -- Sanity check: the current line should now be a section header
+    contains "<h2>"  ?
+        (
+            insert ">>>>>>>> Expected an <h2> here"
+            abort "Check output for a missing <h2>"
+        )

@@ -1,0 +1,427 @@
+
+options
+{
+    LOOKAHEAD = 3;
+}
+
+PARSER_BEGIN(Frodo)
+
+package com.bpreece.lotr;
+
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public class Frodo
+{
+    private static final Map<String, Object> defines = new HashMap<String, Object>();
+
+    public static void main(String args[])
+        throws ParseException
+    {
+        try {
+            if (args.length < 1) {
+                System.err.println("Usage:  frodo <script> [ <infile> [ <outfile> ] ]");
+            }
+            Frodo frodo = new Frodo(new FileReader(args[0]));
+
+            Reader in = new InputStreamReader(System.in);
+            if (args.length > 1) {
+                in = new BufferedReader(new FileReader(args[1]));
+            }
+
+            PrintStream out = System.out;
+            if (args.length > 2) {
+                out = new PrintStream(new FileOutputStream(args[2]));
+            }
+
+            ASN.Script frodoScript = frodo.Script();
+            LOTR lotr = new LOTR(readLines(in));
+            frodoScript.execute(lotr);
+            writeLines(out, lotr.getLines());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private static List<String> readLines(Reader in)
+        throws IOException
+    {
+        List<String> lines = new ArrayList<String>();
+        BufferedReader reader = new BufferedReader(in);
+        String line = null;
+        while ((line = reader.readLine()) != null) {
+            lines.add(line);
+        }
+        return lines;
+    }
+
+    private static void writeLines(PrintStream out, List<String> lines) {
+        for (String line : lines) {
+            out.println(line);
+        }
+    }
+
+    private static String unescape(String input) {
+        input = input.substring(1, input.length()-1);
+        StringBuilder buffer = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            if (c == '\\') {
+                c = input.charAt(++i);
+                switch (c) {
+                case 't': buffer.append('\t'); break;
+                case 'b': buffer.append('\b'); break;
+                case 'f': buffer.append('\f'); break;
+                case 'r': buffer.append('\r'); break;
+                case 'n': buffer.append('\n'); break;
+                default:  buffer.append(c); break;
+                }
+            } else {
+                buffer.append(c);
+            }
+        }
+        return buffer.toString();
+    }
+
+    private static final HashMap<String, ASN.TConstant> definedValues =
+        new HashMap<String, ASN.TConstant>();
+
+    private static void define(String id, ASN.TConstant value) {
+        definedValues.put(id, value);
+    }
+
+    private static ASN.TConstant lookup(String id)
+        throws ParseException
+    {
+        if (definedValues.containsKey(id)) {
+            return definedValues.get(id);
+        } else {
+            throw new ParseException("Undefined id " + id);
+        }
+    }
+
+    private static ASN.TConstant lookup(String id, Class valueClass)
+        throws ParseException
+    {
+        if (definedValues.containsKey(id)) {
+            ASN.TConstant value = definedValues.get(id);
+            if (value.getClass().equals(valueClass)) {
+                return value;
+            } else {
+                throw new ParseException(id + value.getClass() + " != " + valueClass);
+            }
+        } else {
+            throw new ParseException("Undefined id " + id);
+        }
+    }
+
+    private final LOTR lotr = new LOTR(new ArrayList<String>());
+
+    public Frodo() { }
+}
+
+PARSER_END(Frodo)
+
+SKIP : { " " | "\t" | "\n" | "\r" }
+
+SKIP : { < "--" > : INSIDE_COMMENT }
+<INSIDE_COMMENT> SKIP : {
+    < ["\r", "\n"] >: DEFAULT
+|   <~[]>
+}
+
+TOKEN :
+{
+    <T_DEFINE:          "define"        | "def"         | ":="          >
+|   <T_ABORT:           "abort"         >
+|   <T_LOG:             "log"           >
+|   <T_FAIL:            "fail"          | "$#!+"        >
+|   <T_START:           "start"         | "("           >
+|   <T_END:             "end"           | ")"           >
+|   <T_ELSE:            "else"          | "?"           >
+|   <T_WHILE:           "while"         >
+|   <T_RESET:           "reset"         >
+|   <T_EMPTY:           "empty"         >
+|   <T_EQUALS:          "equals"        | "=="          >
+|   <T_STARTS:          "starts"        >
+|   <T_ENDS:            "ends"          >
+|   <T_CONTAINS:        "contains"      >
+|   <T_RANGE:           "range"         >
+|   <T_RANGE_EMPTY:     "range-empty"   >
+|   <T_RANGE_STARTS:    "range-starts"  >
+|   <T_RANGE_ENDS:      "range-ends"    >
+|   <T_RANGE_CONTAINS:  "range-contains">
+|   <T_RANGE_ADJUST:    "range-adjust"  >
+|   <T_RANGE_RESET:     "range-reset"   >
+|   <T_PREV:            "prev"          | "<<"          >
+|   <T_PREV_EMPTY:      "prev-empty"    >
+|   <T_PREV_STARTS:     "prev-starts"   >
+|   <T_PREV_ENDS:       "prev-ends"     >
+|   <T_PREV_CONTAINS:   "prev-contains" >
+|   <T_NEXT:            "next"          | ">>"          >
+|   <T_NEXT_EMPTY:      "next-empty"    >
+|   <T_NEXT_STARTS:     "next-starts"   >
+|   <T_NEXT_ENDS:       "next-ends"     >
+|   <T_NEXT_CONTAINS:   "next-contains" >
+|   <T_INSERT:          "insert"        | "^^"          >
+|   <T_INSERT_AFTER:    "insert-after"  >
+|   <T_APPEND:          "append"        | "$$"          >
+|   <T_REMOVE:          "remove"        | "##"          >
+|   <T_REMOVE_RANGE:    "remove-range"  >
+|   <T_REPLACE:         "replace"       >
+|   <T_REPLACE_FIRST:   "replace-first" >
+|   <T_REPLACE_ALL:     "replace-all"   >
+|   <T_CATENATE:        "catenate"      | "cat"         >
+|   <T_REWRITE:         "rewrite"       >
+|   <T_TO_LOWER:        "to-lower"      >
+|   <T_TO_UPPER:        "to-upper"      >
+|   <T_TRIM:            "trim"          >
+|   <T_MATCH:           "match"         >
+|   <T_SPLIT:           "split"         >
+|   <T_STRING:
+        "\""
+        (   (~["\"","\\","\n","\r"])
+        |   ("\\" ( ["t","b","f","\\","\""]))
+        )*
+        "\""
+    >
+|   <T_REGEX:
+        "/"
+        (   (~["/","\\","\n","\r"])
+        |   ("\\" ( ["t","b","f","\\","/"]))
+        )*
+        "/"
+    >
+|   <T_FORMAT:
+        "|"
+        (   (~["|","\\","\n","\r"])
+        |   ("\\" ( ["t","b","f","\\","|"]))
+        )*
+        "|"
+    >
+|   <T_INTEGER:
+        ("-")? ["1"-"9"] (["0"-"9"])*
+    >
+|   <T_FLOAT:
+        (["0"-"9"])+ "." (["0"-"9"])*
+    |   "." (["0"-"9"])+
+    >
+|   <T_ID:
+        (["a"-"z","A"-"Z"]) (["a"-"z","A"-"Z","0"-"9","_"])*
+    >
+}
+
+ASN.Script Script() : {
+    ASN.Command command;
+} {
+    ( Definition() )*
+    command = Disjunction() {return new ASN.Script(command); }
+}
+
+ASN.TConstant Literal() : {
+    Token t;
+} {
+    t = <T_STRING> { return new ASN.TString(unescape(token.image)); }
+|   t = <T_REGEX> { return new ASN.TRegex(unescape(token.image)); }
+|   t = <T_FORMAT> { return new ASN.TFormat(unescape(token.image)); }
+|   t = <T_INTEGER> { return new ASN.TInteger(Long.parseLong(token.image)); }
+|   t = <T_FLOAT> { return new ASN.TFloat(Double.parseDouble(token.image)); }
+}
+
+void Definition() : {
+    Token id;
+    ASN.TConstant constant;
+} {
+    <T_DEFINE> id = <T_ID> constant = Literal() { define(id.image, constant); }
+}
+
+ASN.TConstant Constant() : {
+    Token t;
+} {
+    t = <T_STRING> { return new ASN.TString(unescape(t.image)); }
+|   t = <T_REGEX> { return new ASN.TRegex(unescape(t.image)); }
+|   t = <T_FORMAT> { return new ASN.TFormat(unescape(t.image)); }
+|   t = <T_INTEGER> { return new ASN.TInteger(Long.parseLong(t.image)); }
+|   t = <T_FLOAT> { return new ASN.TFloat(Double.parseDouble(t.image)); }
+|   t = <T_ID> { return lookup(t.image); }
+}
+
+ASN.TString String() : {
+    Token t;
+} {
+    t = <T_STRING> { return new ASN.TString(unescape(t.image)); }
+|   t = <T_ID> { return (ASN.TString)lookup(t.image, ASN.TString.class); }
+}
+
+ASN.TRegex Regex() : {
+    Token t;
+} {
+    t = <T_REGEX> { return new ASN.TRegex(unescape(t.image)); }
+|   t = <T_ID> { return (ASN.TRegex)lookup(t.image, ASN.TRegex.class); }
+}
+
+ASN.TFormat Format() : {
+    Token t;
+} {
+    t = <T_FORMAT> { return new ASN.TFormat(unescape(t.image)); }
+|   t = <T_ID> { return (ASN.TFormat)lookup(t.image, ASN.TFormat.class); }
+}
+
+ASN.TInteger Integer() : {
+    Token t;
+} {
+    t = <T_INTEGER> { return new ASN.TInteger(Long.parseLong(t.image)); }
+|   t = <T_ID> { return (ASN.TInteger)lookup(t.image, ASN.TInteger.class); }
+}
+
+ASN.TFloat Float() : {
+    Token t;
+} {
+    t = <T_FLOAT> { return new ASN.TFloat(Double.parseDouble(t.image)); }
+|   t = <T_ID> { return (ASN.TFloat)lookup(t.image, ASN.TFloat.class); }
+}
+
+ASN.Command Command() : {
+    ASN.Command command;
+} {
+    command = Directive() { return command; }
+|   command = WhileCommand() { return command; }
+|   command = CompoundCommand() { return command; }
+}
+
+ASN.Disjunction CompoundCommand() : {
+    ASN.Disjunction command;
+} {
+    <T_START> command = Disjunction() <T_END> { return command; }
+}
+
+ASN.While WhileCommand() : {
+    ASN.Command command;
+} {
+    <T_WHILE> command = Command() { return new ASN.While(command); }
+}
+
+ASN.Disjunction Disjunction() : {
+    ASN.Disjunction command = new ASN.Disjunction();
+    ASN.Command next;
+} {
+    next = Sequence() { command.add(next); }
+    (
+        <T_ELSE> next = Sequence()  { command.add(next); }
+    )*
+    { return command; }
+}
+
+ASN.Sequence Sequence() : {
+    ASN.Sequence command = new ASN.Sequence();
+    ASN.Command next;
+} {
+    (
+        next = Command() { command.add(next); }
+    )*
+    { return command; }
+}
+
+/*
+ */
+ASN.Directive Directive() : {
+    ASN.TConstant x, y;
+    ASN.TString s;
+    ASN.TRegex r;
+    ASN.TFormat f;
+    ASN.TInteger n;
+} {
+    ( <T_ABORT> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_ABORT, x); }
+|   <T_ABORT>
+    { return new ASN.Directive(FrodoConstants.T_ABORT); }
+|   ( <T_LOG> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_LOG, x); }
+|   ( <T_FAIL> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_FAIL, x); }
+|   <T_FAIL>
+    { return new ASN.Directive(FrodoConstants.T_FAIL); }
+|   <T_RESET>
+    { return new ASN.Directive(FrodoConstants.T_RESET); }
+|   <T_EMPTY>
+    { return new ASN.Directive(FrodoConstants.T_EMPTY); }
+|   ( <T_EQUALS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_EQUALS, s); }
+|   ( <T_STARTS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_STARTS, s); }
+|   ( <T_ENDS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_ENDS, s); }
+|   ( <T_CONTAINS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_CONTAINS, s); }
+|   <T_RANGE_RESET>
+    { return new ASN.Directive(FrodoConstants.T_RANGE_RESET); }
+|   ( <T_RANGE> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_RANGE, x); }
+|   <T_RANGE_EMPTY> 
+    { return new ASN.Directive(FrodoConstants.T_RANGE_EMPTY); }
+|   ( <T_RANGE_STARTS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_RANGE_STARTS, s); }
+|   ( <T_RANGE_ENDS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_RANGE_ENDS, s); }
+|   ( <T_RANGE_CONTAINS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_RANGE_CONTAINS, s); }
+|   ( <T_RANGE_ADJUST> n = Integer() )
+    { return new ASN.Directive(FrodoConstants.T_RANGE_ADJUST, n); }
+|   ( <T_NEXT> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_NEXT, x); }
+|   <T_NEXT>
+    { return new ASN.Directive(FrodoConstants.T_NEXT); }
+|   <T_NEXT_EMPTY>
+    { return new ASN.Directive(FrodoConstants.T_NEXT_EMPTY); }
+|   ( <T_NEXT_STARTS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_NEXT_STARTS, s); }
+|   ( <T_NEXT_ENDS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_NEXT_ENDS, s); }
+|   ( <T_NEXT_CONTAINS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_NEXT_CONTAINS, s); }
+|   ( <T_PREV> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_PREV, x); }
+|   <T_PREV>
+    { return new ASN.Directive(FrodoConstants.T_PREV); }
+|   <T_PREV_EMPTY>
+    { return new ASN.Directive(FrodoConstants.T_PREV_EMPTY); }
+|   ( <T_PREV_STARTS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_PREV_STARTS, s); }
+|   ( <T_PREV_ENDS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_PREV_ENDS, s); }
+|   ( <T_PREV_CONTAINS> s = String() )
+    { return new ASN.Directive(FrodoConstants.T_PREV_CONTAINS, s); }
+|   ( <T_INSERT> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_INSERT, x); }
+|   ( <T_INSERT_AFTER> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_INSERT_AFTER, x); }
+|   ( <T_APPEND> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_APPEND, x); }
+|   <T_REMOVE>
+    { return new ASN.Directive(FrodoConstants.T_REMOVE); }
+|   <T_REMOVE_RANGE>
+    { return new ASN.Directive(FrodoConstants.T_REMOVE_RANGE); }
+|   ( <T_REPLACE> r = Regex() f = Format() )
+    { return new ASN.Directive(FrodoConstants.T_REPLACE, r, f); }
+|   ( <T_REPLACE> x = Constant() )
+    { return new ASN.Directive(FrodoConstants.T_REPLACE, x); }
+|   ( <T_REPLACE_ALL> r = Regex() s = String() )
+    { return new ASN.Directive(FrodoConstants.T_REPLACE_ALL, r, s); }
+|   ( <T_REPLACE_FIRST> r = Regex() s = String() )
+    { return new ASN.Directive(FrodoConstants.T_REPLACE_FIRST, r, s); }
+|   <T_CATENATE>
+    { return new ASN.Directive(FrodoConstants.T_CATENATE); }
+|   ( <T_CATENATE> n = Integer() )
+    { return new ASN.Directive(FrodoConstants.T_CATENATE, n); }
+|   ( <T_MATCH> r = Regex() )
+    { return new ASN.Directive(FrodoConstants.T_MATCH, r); }
+}

@@ -1,0 +1,184 @@
+
+Frodo, the LOTR
+====================
+
+Frodo is a Line-Oriented Text Rewriter, a tool for scripting bulk
+rewrites of line-oriented text data. It can be used for reformatting
+data, or for other editing tasks more challenging than
+global-search-and-replace.
+
+The easiest way to explain is just to give some examples.  Suppose
+you have a data file that looks like this:
+
+    last="Ambrose" first="Alice" bdate="1885-04-22"
+    last="Baldwin" first="Bernard" bdate="1887-09-13"
+    last="Corbin" first="Charles" bdate="1879-11-03"
+    last="Dalton" first="Dennis" bdate="1881-01-07"
+
+That's nice and all, but it would be more convenient if it were in
+CSV format, with maybe a header that gave names to the column.  This
+is a perfect job for Frodo.  Try this script on it.
+
+    insert "LAST,FIRST,BDATE"
+    while (
+        replace /last="(.*)" first="(.*)" bdate="(.*)"/ |{1},{2},{3}|
+        next
+    )
+
+You'll get something that looks like this.
+
+    LAST,FIRST,BDATE
+    Ambrose,Alice,1885-04-22
+    Baldwin,Bernard,1887-09-13
+    Corbin,Charles,1879-11-03
+    Dalton,Dennis,1881-01-07
+
+This is probably pretty obvious, except for the "replace" directive.
+
+The first argument - the part between the slashes (/) - is a regular
+expression.  Because Frodo is a Java application, these are the
+java.util.regex.Pattern regular expressions.  The parentheses mark
+capture groups.  When the regex matches the current line, the parts
+of the string inside the parentheses are captured and saved to be used
+later - for example, by the second argument.
+
+The second argument of the replace directive - the part between the
+vertical bars (|) - is a string format as defined by the
+java.text.MessageFormat class.  The numbers inside the braces indicate
+arguments which are replaced by the corresponding capture groups from
+the previous regex match.  The entire line is then replaced by this
+newly formatted string.
+
+If we wanted, we could make the script slightly more readable by
+giving names to the all the strings.
+
+    define CsvHeader "LAST,FIRST,BDATE"
+    define OldFormat /last="(.*)" first="(.*)" bdate="(.*)"/
+    define NewFormat |{1},{2},{3}|
+
+    insert CsvHeader
+    while (
+        replace OldFormat NewFormat
+        next
+    )
+
+Let's amp it up to 0.5.  Suppose we want the output in XML format,
+rather than CSV.  This script will do it.
+
+    define InputFormat     /last="(.*)" first="(.*)" bdate="(.*)"/
+    insert "<records>"
+    while (
+        match InputFormat
+        insert "  <record>"
+        insert |    <last>{1}</last>|
+        insert |    <first>{2}</first>|
+        insert |    <bdate>{3}</bdate>|
+        insert "  </record>"
+        remove
+    )
+    append "</records>"
+
+The "match" directive captures the parts of the line for use by the
+inserts.  Note that all lines are inserted before the current line
+being edited.  When the current line is finally removed, all lines
+after it move up in the list, and so the next line after it
+automatically becomes the new current line.  Once we've processed all
+lines, the match directive will fail because there is no current line,
+and the while loop will exit, allowing the append directive to be
+executed.
+
+Here's the output.
+
+    <records>
+      <record>
+        <last>Ambrose</last>
+        <first>Alice</first>
+        <bdate>1885-04-22</bdate>
+      </record>
+      <record>
+        <last>Baldwin</last>
+        <first>Bernard</first>
+        <bdate>1887-09-13</bdate>
+      </record>
+      <record>
+        <last>Corbin</last>
+        <first>Charles</first>
+        <bdate>1879-11-03</bdate>
+      </record>
+      <record>
+        <last>Dalton</last>
+        <first>Dennis</first>
+        <bdate>1881-01-07</bdate>
+      </record>
+    </records>
+
+Finally, let's amp it up to about a 1.
+
+Suppose we want to convert the XML back to CSV.  Check out this script.
+
+    define CSV_Header "LAST,FIRST,BDATE"
+    define XML  /\s*<last>(.*)</last>\s*<first>(.*)</first>\s*<bdate>(.*)</bdate>"
+    define CSV  |{1},{2},{3}|
+
+    insert CSV_Header
+    match "<records>" remove
+    while (
+        match "<record>" remove
+        catenate 2 -- join the current line with the next two lines
+        replace XML CSV
+        next
+        match "</record>" remove
+    )
+    match "</records>" remove
+
+You might notice here that comments begin with a double dash and
+continue to the end of the line.
+
+Also notice that terminators are not required to mark the end of a
+directive.  Each directive begins with a keyword, and the next keyword
+marks the start of the next directive.  This means, for example, that
+
+    match "<records>" remove
+
+is the same as
+
+    match "<records>"
+    remove
+
+So why do we match "<records>" when there are no capture groups to
+extract?  Every directive either succeeds or fails, and a sequence of
+directive continue only as long as every one of them succeeds.  If the
+current line - in this case the first line - doesn't match the regex,
+then the directive will fail and Frodo will stop processing the script.
+
+It's possible to provide an alternate sequence of directives in case a
+sequence doesn't complete.  For example,
+
+    match "<records>"
+    remove
+    else
+    log "Didn't find a <records> tag at the start of the file"
+    fail
+
+In this example, if both the match and remove directives succeed,
+then neither the log or the fail directive will be attempted.  If the
+match fails, or if the match succeeds but the remove fails, then Frodo
+will continue at the "log" directive.  The remove will only be attempted
+if the match succeeds.
+
+Obviously, there's a lot more to Frodo than this.  See the programmer
+manual for more information
+
+
+How to Execute Frodo
+====================
+
+Frodo is a Java application.  Make sure you have Java installed.
+Download the Frodo jar file from the dist folder, and run this command:
+
+    java -jar frodo.jar <script-file> [ <input-file> [ <output-file> ] ]
+
+The first argument, the script file is required.  If the output file
+is not specified, the output will be written to the console.  If the
+input file is also not specified, then the input will be read from the
+console.
