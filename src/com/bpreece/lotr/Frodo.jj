@@ -31,27 +31,31 @@ public class Frodo
             if (args.length < 1) {
                 System.err.println("Usage:  frodo <script> [ <infile> [ <outfile> ] ]");
             }
+
+            /* set up input and output streams */
+            Reader in = (args.length > 1) ? 
+                new BufferedReader(new FileReader(args[1])) : 
+                new InputStreamReader(System.in);
+            PrintStream out = (args.length > 2) ? 
+                new PrintStream(new FileOutputStream(args[2])) : 
+                System.out
+
+            /* parse and execute the frodo script */
             Frodo frodo = new Frodo(new FileReader(args[0]));
-
-            Reader in = new InputStreamReader(System.in);
-            if (args.length > 1) {
-                in = new BufferedReader(new FileReader(args[1]));
-            }
-
-            PrintStream out = System.out;
-            if (args.length > 2) {
-                out = new PrintStream(new FileOutputStream(args[2]));
-            }
-
             ASN.Script frodoScript = frodo.Script();
             LOTR lotr = new LOTR(readLines(in));
             frodoScript.execute(lotr);
             writeLines(out, lotr.getLines());
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.err.println(ex.getMessage());
         }
     }
 
+    /**
+     * Read an input stream into an array of text lines.
+     * @param in the input stream to read
+     * @return the array of text lines
+     */
     private static List<String> readLines(Reader in)
         throws IOException
     {
@@ -64,12 +68,22 @@ public class Frodo
         return lines;
     }
 
+    /**
+     * Write an array of text lines to an output stream  
+     * @param out the output stream
+     * @param lines the array of text lines
+     */
     private static void writeLines(PrintStream out, List<String> lines) {
         for (String line : lines) {
             out.println(line);
         }
     }
 
+    /**
+     * Convert a string with backslashed control characters into a string with actual control characters.
+     * @param input the string to convert
+     * @return a new string with the converted control characters
+     */
     private static String unescape(String input) {
         input = input.substring(1, input.length()-1);
         StringBuilder buffer = new StringBuilder();
@@ -92,13 +106,25 @@ public class Frodo
         return buffer.toString();
     }
 
+    /* A table of constants defined in the frodo script */
     private static final HashMap<String, ASN.TConstant> definedValues =
         new HashMap<String, ASN.TConstant>();
 
+    /**
+     * Add a constant and its value to the <code>definedValues</code>.
+     * @param id the string name of the constant
+     * @param value the value of the constant
+     */
     private static void define(String id, ASN.TConstant value) {
         definedValues.put(id, value);
     }
 
+    /**
+     * Look up a constant in the <code>definedValues</code> and return its value.
+     * @param id The string name of the constant
+     * @return the value of the constant
+     * @throws ParseException if the constant's id is not found in the <code>definedValues</code>.
+     */
     private static ASN.TConstant lookup(String id)
         throws ParseException
     {
@@ -112,15 +138,11 @@ public class Frodo
     private static ASN.TConstant lookup(String id, Class valueClass)
         throws ParseException
     {
-        if (definedValues.containsKey(id)) {
-            ASN.TConstant value = definedValues.get(id);
-            if (value.getClass().equals(valueClass)) {
-                return value;
-            } else {
-                throw new ParseException(id + value.getClass() + " != " + valueClass);
-            }
+        ASN.TConstant value = lookup(id); // may throw ParseException
+        if (value.getClass().equals(valueClass)) {
+            return value;
         } else {
-            throw new ParseException("Undefined id " + id);
+            throw new ParseException(id + value.getClass() + " != " + valueClass);
         }
     }
 
